@@ -1,9 +1,7 @@
 """Imports"""
 
 import csv
-from dsmltf import scale, squared_errors
-import matplotlib.pyplot as plt
-
+from dsmltf import scale, KMeans, bottom_up_cluster, generate_clusters, get_values
 
 def make_data() -> list:
     """
@@ -44,7 +42,7 @@ def make_data() -> list:
         for i in range(1, len(data)):
             data[i][0] = a[data[i][0]]
             data[i][1] = b[data[i][1]]
-            data[i][2] = float(data[i][2])
+            data[i][2] = int(data[i][2])
             data[i][3] = float(data[i][3])
     return data[1:]
 
@@ -53,20 +51,41 @@ def main() -> None:
     """main function"""
     # Получим датасет
     data_set = make_data()
-    scale_data = scale(data_set)  # Прошкалируем
-    y, x = [], []
-    for k in range(1, 10):
-        y.append(squared_errors(inps=scale_data, k=k))
-        x.append(k)
-    plt.figure(figsize=(10, 6))
-    plt.plot(x, y, label="Исходные данные", marker="o")
-    plt.xlabel("Время")
-    plt.ylabel("Значение")
-    plt.title("Аппроксимация полиномом")
-    plt.legend()
-    plt.grid(True)
-    plt.show()
+    scale_data = scale(data_set[:100])  # Прошкалируем
+    clast = KMeans(8) # Устанавливаем число кластеров
+    clast.train(scale_data) # Тренируем?
+    print(clast.means)
+    # восходящая кластеризация
+    base_claster = bottom_up_cluster(scale_data)
+    print([get_values(cluster) for cluster in generate_clusters(base_claster, 8)])
+    # возможно стоит впихнуть сюда графики 
 
 
 if __name__ == "__main__":
     main()
+
+"""
+Так как в этой лабе куча ошибок в самой dsmltf то держите то, что нужно исправить ручками
+def bottom_up_cluster(inps, distance_agg=min):
+    clusters = [(inp,) for inp in inps]
+    while len(clusters) > 1:
+        c1, c2 = min([(cluster1, cluster2)
+                      for i, cluster1 in enumerate(clusters)
+                      for cluster2 in clusters[:i]],
+                     key=lambda x: cluster_distance( *x, distance_agg))
+        clusters = [c for c in clusters if c != c1 and c != c2]
+        merged_cluster = (len(clusters), [c1, c2])
+        clusters.append(merged_cluster)
+    return clusters[0]
+
+def get_values(cluster):
+    if is_leaf(cluster):
+        return [cluster[0]]
+    else:
+        return [val for child in get_children(cluster) for val in get_values(child)]
+
+def cluster_distance(cluster1, cluster2, distance_agg=min):
+    values1 = list(get_values(cluster1))
+    values2 = list(get_values(cluster2))
+    return distance_agg([distance(list(inp1), list(inp2)) for inp1 in values1 for inp2 in values2])
+"""
